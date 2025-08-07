@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Redirecting...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background: #fff;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      text-align: center;
+      max-width: 400px;
+    }
+    .icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+      animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    h1 {
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .btn {
+      display: inline-block;
+      background-color: #FF9900;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    .disclaimer {
+      font-size: 12px;
+      margin-top: 12px;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">🔄</div>
+    <h1>Taking you to the product...</h1>
+    <a href="#" class="btn">View on Amazon</a>
+    <p class="disclaimer">We may earn a small commission at no extra cost to you.</p>
+  </div>
+
+  <script>
+    const fallback = {
+      redirect_url: "https://www.amazon.com",
+      redirect_delay: 1.5,
+      webhook_url: "",
+      heading_text: "Taking you to the product...",
+      button_text: "View on Amazon",
+      disclaimer: "We may earn a small commission at no extra cost to you."
+    };
+
+    const controllerId = "1AMQxp-xS5fmQc6OoIQfQUyc3QDCpL8JsMdPXXnZ5QsA";
+    const controllerUrl = `https://opensheet.vercel.app/${controllerId}/Sheet1`;
+
+    fetch(controllerUrl)
+      .then(res => res.json())
+      .then(controllerData => {
+        const activeSheetId = controllerData.find(row => row.config === "active_sheet")?.value;
+        if (!activeSheetId) throw new Error("Active sheet ID not found.");
+
+        const settingsUrl = `https://opensheet.vercel.app/${activeSheetId}/Sheet1`;
+        return fetch(settingsUrl);
+      })
+      .then(res => res.json())
+      .then(settingsData => {
+        const config = Object.fromEntries(settingsData.map(r => [r.setting_name, r.value]));
+
+        const redirectUrl = config.redirect_url || fallback.redirect_url;
+        const delay = parseFloat(config.redirect_delay || fallback.redirect_delay) * 1000;
+        const webhook = config.webhook_url || fallback.webhook_url;
+
+        if (webhook) fetch(webhook).catch(() => {});
+
+        document.querySelector("h1").innerText = config.heading_text || fallback.heading_text;
+        document.querySelector(".btn").innerText = config.button_text || fallback.button_text;
+        document.querySelector(".btn").href = redirectUrl;
+        document.querySelector(".disclaimer").innerText = config.disclaimer || fallback.disclaimer;
+
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, delay);
+      })
+      .catch(err => {
+        console.warn("Error loading dynamic config, using fallback.", err);
+        document.querySelector(".btn").href = fallback.redirect_url;
+        setTimeout(() => {
+          window.location.href = fallback.redirect_url;
+        }, fallback.redirect_delay * 1000);
+      });
+  </script>
+</body>
+</html>
